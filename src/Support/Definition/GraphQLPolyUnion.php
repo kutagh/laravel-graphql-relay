@@ -3,8 +3,9 @@
 namespace Nuwave\Relay\Support\Definition;
 
 use GraphQL\Type\Definition\UnionType;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
-class GraphQLUnion extends GraphQLType
+class GraphQLPolyUnion extends GraphQLType
 {
 
     protected function getTypeResolver()
@@ -18,6 +19,9 @@ class GraphQLUnion extends GraphQLType
         return function() use ($resolver)
         {
             $args = func_get_args();
+            $unmorhpedRoot = $args[0];
+            $morphedRoot = method_exists($unmorhpedRoot, 'morphTo') && $unmorhpedRoot->morphTo() instanceof MorphOne ? $unmorhpedRoot->morphTo : null;
+            $args[0] = $morphedRoot;
             return call_user_func_array($resolver, $args);
         };
     }
@@ -37,11 +41,19 @@ class GraphQLUnion extends GraphQLType
             $attributes['resolveType'] = $resolver;
         }
 
+        $types = $this->unionTypes();
+        $attributes['types'] = $types;
+
         return $attributes;
+    }
+
+    public function unionTypes() {
+        return [];
     }
 
     public function toType()
     {
+
         return new UnionType($this->toArray());
     }
 
